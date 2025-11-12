@@ -1,0 +1,1 @@
+This is a RAG solution for a university
