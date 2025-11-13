@@ -1,0 +1,9 @@
+# requirements.txt
+langchain==0.3.13
+langchain-community==0.3.13
+langchain-chroma==0.1.4
+unstructured==0.16.11
+markdown==3.7
+langchain_openai==0.2.14
+chromadb==0.5.23
+ollama==0.6.0
