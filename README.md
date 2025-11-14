@@ -12,3 +12,10 @@ pip install -r requirements.txt
 ollama pull llama3:8b
 ollama pull mxbai-embed-large
 ```
+
+# Run the Streamlit app
+
+From the project root (same folder as app.py) with the virtual environment activated:
+```
+python -m streamlit run app.py
+```
