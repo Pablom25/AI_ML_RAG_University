@@ -7,12 +7,12 @@ from typing import Optional
 
 class Route(BaseModel):
     student: Optional[str] = Field(default=None)
-    intent: str = Field(..., description="One of: student_specific, university_only, mixed")
+    intent: str = Field(..., description="One of: student_specific, university_only, mixed, cohort_students")
 
     @field_validator("intent")
     @classmethod
     def _intent_ok(cls, v: str) -> str:
-        allowed = {"student_specific", "university_only", "mixed"}
+        allowed = {"student_specific", "university_only", "mixed", "cohort_students"}
         if v not in allowed:
             raise ValueError(f"intent must be one of {allowed}")
         return v
@@ -40,6 +40,7 @@ def detect_route(question: str, known_students:list) -> Route:
             "student to that student's lowercased name with no spaces/underscores.\n"
             "If it is only about the university, intent=university_only and student=null.\n"
             "If both a student and general university info are relevant, intent=mixed and student=that student.\n"
+            "If the question asks about students as a group (e.g., “who has…”, “which student…”, “has anyone…”, “among students…”), set intent=cohort_students and student=null.\n"
             "{format_instructions}"
         ),
         ("human", "{question}")
