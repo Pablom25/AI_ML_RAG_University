@@ -50,6 +50,7 @@ def retriever(question: str, student: Optional[str], intent: str, known_students
         student_filter = None  # won’t be used if no student
 
     univ_filter = {"scope": "university"}
+    cohort_filter = {"scope": "student"}
 
     student_ret = db.as_retriever(
         search_type="mmr",
@@ -58,6 +59,10 @@ def retriever(question: str, student: Optional[str], intent: str, known_students
     univ_ret = db.as_retriever(
         search_type="mmr",
         search_kwargs={"k": 6, "fetch_k": 24, "lambda_mult": 0.5, "filter": univ_filter},
+    )
+    cohort_ret = db.as_retriever(
+        search_type="mmr",
+        search_kwargs={"k": 6, "fetch_k": 24, "lambda_mult": 0.5, "filter": cohort_filter},
     )
 
     # Multi-query prompt — preserve the student token if present
@@ -82,12 +87,15 @@ def retriever(question: str, student: Optional[str], intent: str, known_students
     # Retrieve
     student_docs: List = []
     univ_docs: List = []
+    cohort_docs: List = []
 
     if intent in ("student_specific", "mixed") and student:
         for q in queries:
             student_docs.extend(student_ret.invoke(q))
-
-    if intent in ("university_only", "mixed") or not student:
+    if intent == "cohort_students":
+        for q in queries:
+            cohort_docs.extend(cohort_ret.invoke(q))
+    elif intent in ("university_only", "mixed") or not student:
         for q in queries:
             univ_docs.extend(univ_ret.invoke(q))
 
@@ -95,12 +103,15 @@ def retriever(question: str, student: Optional[str], intent: str, known_students
     key_fn = lambda d: (d.metadata.get("source_path"), d.metadata.get("chunk_id"), d.page_content[:64])
     student_docs = _unique_by_key(student_docs, key_fn)
     univ_docs    = _unique_by_key(univ_docs, key_fn)
+    cohort_docs = _unique_by_key(cohort_docs, key_fn)
 
     # Compose final set (bias to student when applicable)
     if intent == "student_specific" and student:
         combined = student_docs[:8] + univ_docs[:4]
     elif intent == "mixed" and student:
         combined = student_docs[:6] + univ_docs[:6]
+    elif intent == "cohort_students":
+        combined = cohort_docs[:8] + univ_docs[:4]
     else:  # university_only or no student detected
         combined = univ_docs[:10]
 
