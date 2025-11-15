@@ -117,4 +117,4 @@ if __name__ == "__main__":
     for question in questions:
         known_students = get_known_students()
         route = detect_route(question, known_students)
-        print(retriever(question, route.student, route.intent))
+        print(retriever(question, route.student, route.intent, known_students))
