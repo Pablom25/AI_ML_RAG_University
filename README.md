@@ -2,7 +2,7 @@ This is a RAG solution for a university
 
 # Set up
 
-To get everything set-up run the following code on your terminal. You must have python 12.
+To get everything set-up run the following code on your terminal. You must have python 3.12.
 
 ```
 python3.12 -m venv .venv
