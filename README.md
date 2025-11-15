@@ -9,7 +9,7 @@ python3.12 -m venv .venv
 source .venv/bin/activate
 python -m pip install -U pip
 pip install -r requirements.txt
-ollama pull llama3:8b
+ollama pull llama3.1:8b
 ollama pull mxbai-embed-large
 ```
 
