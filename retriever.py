@@ -29,13 +29,26 @@ def _resolve_student_name(routed_name: str | None, known_students: list[str]) ->
     best = difflib.get_close_matches(routed_name, known_students, n=1, cutoff=0.75)
     return best[0] if best else None
 
-def retriever(question: str, student: Optional[str], intent: str, known_students: list[str]) -> List:
-    """
-    Takes question + routed student/intent and returns a list[Document].
-    - student: normalized student name or None
-    - intent: 'student_specific' | 'university_only' | 'mixed'
-    """
-
+def retriever(question: str, student: Optional[str], intent: str, known_students: List[str]) -> List:
+    '''Retrieve relevant documents based on routing'''
+    
+    # Check if this is an aggregate/reasoning query
+    reasoning_keywords = ["most common", "how many", "count", "total", "statistics", "distribution", 
+                         "nationality", "skills", "common", "pattern", "relate", "align", "similar", 
+                         "comparison", "difference", "why", "how"]
+    is_reasoning_query = any(keyword in question.lower() for keyword in reasoning_keywords)
+    
+    if is_reasoning_query:
+        # Fetch MORE documents for complex reasoning
+        embedding = OllamaEmbeddings(model="mxbai-embed-large")
+        db = Chroma(persist_directory="chroma", embedding_function=embedding)
+        cohort_ret = db.as_retriever(
+            search_type="mmr",
+            search_kwargs={"k": 20, "fetch_k": 50, "lambda_mult": 0.7, "filter": {"scope": "student"}}
+        )
+        all_students = cohort_ret.invoke(question)
+        return all_students
+    
     student = _resolve_student_name(student, known_students)
     student = _normalize_name(student)
 
