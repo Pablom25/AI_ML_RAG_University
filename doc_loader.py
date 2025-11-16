@@ -8,20 +8,45 @@ import re
 def _infer_meta_from_path(p: Path):
     """
     Expect paths like:
-      data/students/Alejandro/essay.txt
-      data/university/requirements/cs.txt
-    Returns metadata
+      data/students/Alejandro/*.txt
+      data/university/*.txt
     """
     parts = [x.lower() for x in p.parts]
+
+    # ----------------------------
+    # STUDENT DOCUMENTS
+    # ----------------------------
     if "students" in parts:
         i = parts.index("students")
-        student = p.parts[i+1].lower() if i+1 < len(p.parts) else "unknown"
+        student = p.parts[i+1].lower()
+
         stem = p.stem.lower()
-        match = re.search(r'[_\-]?([A-Z][a-zA-Z]+AdmissionEssay|CV|RecommendationLetter)', stem)
-        doc_type = match.group(1).lower() if match else stem.lower()
-        return {"scope": "student", "student": student, "doc_type": doc_type, "source_path": str(p)}
-    # university / general docs
-    return {"scope": "university", "doc_type": p.stem.lower(), "source_path": str(p)}
+
+        # Identify document type
+        if "cv" in stem:
+            doc_type = "cv"
+        elif "essay" in stem:
+            doc_type = "admission_essay"
+        elif "recommend" in stem:
+            doc_type = "recommendation_letter"
+        else:
+            doc_type = stem  # fallback for unknown types
+
+        return {
+            "scope": "student",
+            "student": student.replace(" ", "").replace("_", ""),
+            "doc_type": doc_type,
+            "source_path": str(p)
+        }
+
+    # ----------------------------
+    # UNIVERSITY DOCUMENTS
+    # ----------------------------
+    return {
+        "scope": "university",
+        "doc_type": p.stem.lower(),
+        "source_path": str(p)
+    }
 
 def doc_loader(path:str, persist_dir: str = "chroma", force_reload=False) -> Chroma | None:
     '''Takes data path, loads it, splits it, embeds it, and returns the vector store'''
