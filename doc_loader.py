@@ -23,9 +23,19 @@ def _infer_meta_from_path(p: Path):
     # university / general docs
     return {"scope": "university", "doc_type": p.stem.lower(), "source_path": str(p)}
 
-def doc_loader(path:str) -> Chroma | None:
+def doc_loader(path:str, persist_dir: str = "chroma", force_reload=False) -> Chroma | None:
     '''Takes data path, loads it, splits it, embeds it, and returns the vector store'''
 
+    # Embedding function
+    embedding = OllamaEmbeddings(model="mxbai-embed-large")
+
+    # Check if vectorstore already created
+    if Path(persist_dir).exists() and any(Path(persist_dir).iterdir()) and not force_reload:
+        print(f"Using existing Chroma DB found at '{persist_dir}'.")
+        db = Chroma(persist_directory=persist_dir, embedding_function=embedding)
+        return db
+
+    # If vectorstore doesn't exist, create it
     loader = DirectoryLoader(
         path,
         glob="**/*.txt",
@@ -40,6 +50,7 @@ def doc_loader(path:str) -> Chroma | None:
         meta = _infer_meta_from_path(Path(d.metadata.get("source", "")))
         d.metadata.update(meta)
 
+    # Split
     splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200, add_start_index=True)
     chunks = splitter.split_documents(docs)
     print("chunks:", len(chunks))
@@ -49,8 +60,8 @@ def doc_loader(path:str) -> Chroma | None:
         c.metadata.setdefault("chunk_id", i)
     
     # Embed
-    embedding = OllamaEmbeddings(model="mxbai-embed-large")
-    db = Chroma.from_documents(chunks, embedding, persist_directory="chroma")
+    db = Chroma.from_documents(chunks, embedding, persist_directory=persist_dir)
+    print(f"New Chroma DB created at '{persist_dir}'.")
     return db
 
 if __name__ == "__main__":
