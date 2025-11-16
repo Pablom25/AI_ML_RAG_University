@@ -1,0 +1,25 @@
+Test Student
+Madrid, Spain
+Email: test.student@example.com
+
+EDUCATION
+- Bachelor of Economics (in progress), strong coursework in Statistics, Microeconomics, and Data Analysis.
+- High School International Baccalaureate Diploma, with Higher Level subjects in Mathematics and Economics.
+
+EXPERIENCE
+- Research Assistant at Local Policy Lab (2023–2024)
+  - Collected and analyzed data using Excel and Python.
+  - Supported the creation of policy briefs on housing affordability.
+
+- Volunteer Tutor (2022–2023)
+  - Mentored younger students in mathematics and study skills.
+  - Helped improve grades and confidence for 8+ students.
+
+SKILLS
+- Languages: Spanish (native), English (C1)
+- Tools: Python, Excel, Tableau, R (beginner)
+- Soft Skills: Leadership, communication, teamwork, time management
+
+ACHIEVEMENTS
+- Awarded “Top Economics Student” in final year of high school.
+- Finalist in a regional debate competition.
