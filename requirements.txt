@@ -11,3 +11,4 @@ langchain_ollama<1.0.0
 streamlit
 pdfplumber
 openai-whisper
+audio-recorder-streamlit
