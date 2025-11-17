@@ -9,3 +9,4 @@ chromadb==0.5.23
 ollama==0.6.0
 langchain_ollama<1.0.0
 streamlit
+pdfplumber
