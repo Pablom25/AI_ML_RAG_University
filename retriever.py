@@ -29,19 +29,30 @@ def _resolve_student_name(routed_name: str | None, known_students: list[str]) ->
     best = difflib.get_close_matches(routed_name, known_students, n=1, cutoff=0.75)
     return best[0] if best else None
 
-def retriever(question: str, student: Optional[str], intent: str, known_students: list[str]) -> List:
-    """
-    Takes question + routed student/intent and returns a list[Document].
-    - student: normalized student name or None
-    - intent: 'student_specific' | 'university_only' | 'mixed'
-    """
-
-    student = _resolve_student_name(student, known_students)
-    student = _normalize_name(student)
-
-    # Vector store
+def retriever(question: str, student: Optional[str], intent: str, known_students: List[str]) -> List:
+    '''Retrieve relevant documents based on routing'''
+    
+    # Check if this is an aggregate/cohort query about students
+    aggregate_keywords = ["most common", "how many", "count", "total", "statistics", 
+                         "distribution", "nationality", "nationalities", "skills", 
+                         "common", "pattern", "all students", "students"]
+    is_aggregate_query = any(keyword in question.lower() for keyword in aggregate_keywords)
+    
     embedding = OllamaEmbeddings(model="mxbai-embed-large")
     db = Chroma(persist_directory="chroma", embedding_function=embedding)
+    
+    # For aggregate queries, fetch ALL student documents
+    if is_aggregate_query:
+        cohort_ret = db.as_retriever(
+            search_type="similarity",
+            search_kwargs={"k": 100, "filter": {"scope": "student"}}
+        )
+        all_students = cohort_ret.invoke(question)
+        return all_students
+    
+    # Vector store
+    # embedding = OllamaEmbeddings(model="mxbai-embed-large")
+    # db = Chroma(persist_directory="chroma", embedding_function=embedding)
 
     # Build filtered retrievers
     if student:

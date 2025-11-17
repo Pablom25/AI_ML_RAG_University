@@ -8,18 +8,31 @@ import re
 def _infer_meta_from_path(p: Path):
     """
     Expect paths like:
-      data/students/Alejandro/essay.txt
+      data/students/AishaMwangi/Student2_AishaMwangi_AdmissionEssay.txt
       data/university/requirements/cs.txt
     Returns metadata
     """
     parts = [x.lower() for x in p.parts]
     if "students" in parts:
         i = parts.index("students")
-        student = p.parts[i+1].lower() if i+1 < len(p.parts) else "unknown"
-        stem = p.stem.lower()
-        match = re.search(r'[_\-]?([A-Z][a-zA-Z]+AdmissionEssay|CV|RecommendationLetter)', stem)
-        doc_type = match.group(1).lower() if match else stem.lower()
+        # Get student folder name (e.g., "AishaMwangi")
+        student = p.parts[i+1].lower().replace(" ", "").replace("_", "") if i+1 < len(p.parts) else "unknown"
+        
+        # Extract doc type from filename
+        stem_lower = p.stem.lower()
+        
+        # Detect document type
+        if "admissionessay" in stem_lower or "essay" in stem_lower:
+            doc_type = "admissionessay"
+        elif "cv" in stem_lower or "resume" in stem_lower:
+            doc_type = "cv"
+        elif "recommendation" in stem_lower or "letter" in stem_lower:
+            doc_type = "recommendationletter"
+        else:
+            doc_type = stem_lower
+        
         return {"scope": "student", "student": student, "doc_type": doc_type, "source_path": str(p)}
+    
     # university / general docs
     return {"scope": "university", "doc_type": p.stem.lower(), "source_path": str(p)}
 
