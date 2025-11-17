@@ -9,6 +9,9 @@ from decomposer import decompose_question
 from styles import apply_custom_styles
 from file_converter import convert_and_save
 from audio_transcriber import transcribe_audio_file
+
+from audio_recorder_streamlit import audio_recorder
+import io
 import datetime
 
 # Page configuration
@@ -189,17 +192,18 @@ def main():
                         "You can now go to **Ask Questions** and query this student."
                     )
     # ----------------------------
-    # TAB 3: Interview Audio (upload + transcribe)
+    # TAB 3: Interview Audio (upload or record + transcribe)
     # ----------------------------
     with tab_interview:
-        st.markdown("### 🎙️ Upload and transcribe an interview")
+        st.markdown("### 🎙️ Interview Audio")
         st.info(
-            "Upload an audio file (e.g. `.wav`, `.mp3`, `.m4a`) of a student interview. "
+            "You can either upload an existing audio file of a student interview, "
+            "or record a new one directly in the browser. "
             "The app will transcribe it and save both the audio and the transcript "
             "under that student's folder in `data/students/<StudentID>/`."
         )
 
-        # 1. Select existing student or type a new one
+        # 1. Select existing student or type a new one (shared for both flows)
         known_students = get_known_students()
         existing_display_names = [name.replace("_", " ").title() for name in known_students]
         existing_display_names_with_none = ["(None)"] + existing_display_names
@@ -221,52 +225,114 @@ def main():
         if new_student_name.strip():
             chosen_student_name = new_student_name.strip()
         elif selected_existing != "(None)":
-            # Map display name back to internal ID-like name
-            # We only need the *string name* here, the helper will convert to ID.
             chosen_student_name = selected_existing
 
-        # 2. Upload audio file
-        audio_file = st.file_uploader(
-            "🎧 Upload interview audio file",
-            type=["wav", "mp3", "m4a", "ogg"],
-        )
+        # ----------------------------------------
+        # A) Upload existing audio
+        # ----------------------------------------
+        with st.expander("📂 Upload existing interview audio", expanded=True):
+            audio_file = st.file_uploader(
+                "🎧 Upload interview audio file",
+                type=["wav", "mp3", "m4a", "ogg"],
+                key="upload_audio_file",
+            )
 
-        # 3. Transcribe & save
-        if st.button("🚀 Transcribe and save interview", type="primary"):
-            if chosen_student_name is None:
-                st.warning("⚠️ Please select or enter a student name first.")
-            elif audio_file is None:
-                st.warning("⚠️ Please upload an audio file.")
-            else:
-                with st.spinner("🔊 Transcribing audio..."):
-                    # Use Whisper (or whatever you wired in audio_transcriber.py)
-                    transcript_text = transcribe_audio_file(audio_file, language=None)
-
-                if not transcript_text.strip():
-                    st.error("❌ Transcription failed or returned empty text.")
+            if st.button("🚀 Transcribe and save uploaded interview", type="primary", key="transcribe_upload"):
+                if chosen_student_name is None:
+                    st.warning("⚠️ Please select or enter a student name first.")
+                elif audio_file is None:
+                    st.warning("⚠️ Please upload an audio file.")
                 else:
-                    student_id, audio_path, transcript_path = save_interview_audio_and_transcript(
-                        chosen_student_name, audio_file, transcript_text
-                    )
+                    with st.spinner("🔊 Transcribing uploaded audio..."):
+                        transcript_text = transcribe_audio_file(audio_file, language=None)
 
-                    st.success(
-                        f"✅ Interview saved for student ID `{student_id}`.\n\n"
-                        f"- Audio: `{os.path.basename(audio_path)}`\n"
-                        f"- Transcript: `{os.path.basename(transcript_path)}`"
-                    )
+                    if not transcript_text.strip():
+                        st.error("❌ Transcription failed or returned empty text.")
+                    else:
+                        student_id, audio_path, transcript_path = save_interview_audio_and_transcript(
+                            chosen_student_name, audio_file, transcript_text
+                        )
 
-                    st.markdown("#### 📝 Transcript preview")
-                    st.text_area(
-                        "",
-                        value=transcript_text,
-                        height=300,
-                        label_visibility="collapsed",
-                    )
+                        st.success(
+                            f"✅ Interview saved for student ID `{student_id}`.\n\n"
+                            f"- Audio: `{os.path.basename(audio_path)}`\n"
+                            f"- Transcript: `{os.path.basename(transcript_path)}`"
+                        )
 
-                    st.info(
-                        "This transcript will be picked up automatically the next "
-                        "time the knowledge base is loaded (e.g., when you ask a question)."
-                    )
+                        st.markdown("#### 📝 Transcript preview (uploaded)")
+                        st.text_area(
+                            "",
+                            value=transcript_text,
+                            height=300,
+                            label_visibility="collapsed",
+                            key="uploaded_transcript_preview",
+                        )
+
+                        st.info(
+                            "This transcript will be picked up automatically the next "
+                            "time the knowledge base is loaded (e.g., when you ask a question)."
+                        )
+
+        # ----------------------------------------
+        # B) Record a new interview
+        # ----------------------------------------
+        with st.expander("🎙️ Record a new interview", expanded=False):
+            st.markdown(
+                "Click the button below to start/stop recording using your microphone. "
+                "Once you're happy with the recording, you can transcribe and save it "
+                "for the selected student."
+            )
+
+            recorded_audio = audio_recorder(
+                text="Click to start / stop recording",
+                recording_color="#e3342f",  # red-ish while recording
+                neutral_color="#4b5563",  # gray when idle
+                icon_name="microphone",
+                icon_size="2x",
+            )
+
+            if recorded_audio is not None:
+                st.markdown("#### 🔊 Recorded audio preview")
+                st.audio(recorded_audio, format="audio/wav")
+
+                if st.button("🚀 Transcribe and save recorded interview", type="primary", key="transcribe_recorded"):
+                    if chosen_student_name is None:
+                        st.warning("⚠️ Please select or enter a student name first.")
+                    else:
+                        # Wrap the raw bytes in a file-like object that mimics an UploadedFile
+                        recorded_file = io.BytesIO(recorded_audio)
+                        recorded_file.name = "recorded_interview.wav"
+
+                        with st.spinner("🔊 Transcribing recorded audio..."):
+                            transcript_text = transcribe_audio_file(recorded_file, language=None)
+
+                        if not transcript_text.strip():
+                            st.error("❌ Transcription failed or returned empty text.")
+                        else:
+                            # We can reuse the same helper to save audio + transcript
+                            student_id, audio_path, transcript_path = save_interview_audio_and_transcript(
+                                chosen_student_name, recorded_file, transcript_text
+                            )
+
+                            st.success(
+                                f"✅ Recorded interview saved for student ID `{student_id}`.\n\n"
+                                f"- Audio: `{os.path.basename(audio_path)}`\n"
+                                f"- Transcript: `{os.path.basename(transcript_path)}`"
+                            )
+
+                            st.markdown("#### 📝 Transcript preview (recorded)")
+                            st.text_area(
+                                "",
+                                value=transcript_text,
+                                height=300,
+                                label_visibility="collapsed",
+                                key="recorded_transcript_preview",
+                            )
+
+                            st.info(
+                                "This transcript will be picked up automatically the next "
+                                "time the knowledge base is loaded (e.g., when you ask a question)."
+                            )
 
     # ----------------------------
     # TAB 4: Student Fit Test
