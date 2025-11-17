@@ -8,6 +8,8 @@ from generator import generator
 from decomposer import decompose_question
 from styles import apply_custom_styles
 from file_converter import convert_and_save
+from audio_transcriber import transcribe_audio_file
+import datetime
 
 # Page configuration
 st.set_page_config(
@@ -44,13 +46,54 @@ def save_student_files(student_name: str, cv_file, essay_file, rec_file):
     success = ok_cv and ok_essay and ok_rec
     return student_id, base_dir, success
 
+def save_interview_audio_and_transcript(student_name: str, audio_file, transcript_text: str):
+    """
+    Save the raw audio file and its transcript under the student's folder.
+
+    Returns:
+        student_id (str), audio_path (str), transcript_path (str)
+    """
+    student_id = _student_name_to_id(student_name)
+    base_dir = os.path.join("data", "students", student_id)
+    os.makedirs(base_dir, exist_ok=True)
+
+    # Build filenames with timestamp to avoid collisions
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    # Audio file
+    audio_ext = os.path.splitext(audio_file.name)[1] or ".wav"
+    audio_filename = f"interview_{timestamp}{audio_ext}"
+    audio_path = os.path.join(base_dir, audio_filename)
+
+    # Transcript file
+    transcript_filename = f"interview_{timestamp}.txt"
+    transcript_path = os.path.join(base_dir, transcript_filename)
+
+    # Save audio bytes
+    audio_bytes = audio_file.getvalue()  # works reliably even after .read()
+    with open(audio_path, "wb") as f:
+        f.write(audio_bytes)
+
+    # Save transcript text
+    with open(transcript_path, "w", encoding="utf-8") as f:
+        f.write(
+            f"Source: Interview audio\n"
+            f"Student ID: {student_id}\n"
+            f"Date: {datetime.datetime.now().isoformat()}\n\n"
+            f"{transcript_text}"
+        )
+
+    return student_id, audio_path, transcript_path
+
 
 def main():
     # Header with icon
     st.markdown("<h1>AI Admissions Helper</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: #666; margin-bottom: 2rem;'>Your intelligent assistant for university admissions</p>", unsafe_allow_html=True)
 
-    tab_ask, tab_add, tab_fit = st.tabs(["💬 Ask Questions", "➕ Add Student", "📊 Student Fit Test"])
+    tab_ask, tab_add, tab_interview, tab_fit = st.tabs(
+        ["💬 Ask Questions", "➕ Add Student", "🎙️ Interview Audio", "📊 Student Fit Test"]
+    )
 
     # ----------------------------
     # TAB 1: Ask Questions
@@ -145,9 +188,88 @@ def main():
                         f"✅ Student **{student_name}** saved as folder `{student_id}` in `{folder}`.\n\n"
                         "You can now go to **Ask Questions** and query this student."
                     )
+    # ----------------------------
+    # TAB 3: Interview Audio (upload + transcribe)
+    # ----------------------------
+    with tab_interview:
+        st.markdown("### 🎙️ Upload and transcribe an interview")
+        st.info(
+            "Upload an audio file (e.g. `.wav`, `.mp3`, `.m4a`) of a student interview. "
+            "The app will transcribe it and save both the audio and the transcript "
+            "under that student's folder in `data/students/<StudentID>/`."
+        )
+
+        # 1. Select existing student or type a new one
+        known_students = get_known_students()
+        existing_display_names = [name.replace("_", " ").title() for name in known_students]
+        existing_display_names_with_none = ["(None)"] + existing_display_names
+
+        col1, col2 = st.columns(2)
+        with col1:
+            selected_existing = st.selectbox(
+                "👨‍🎓 Select existing student (optional)",
+                existing_display_names_with_none,
+            )
+        with col2:
+            new_student_name = st.text_input(
+                "Or enter a new student name",
+                placeholder="e.g., Maria Gomez",
+            )
+
+        # Resolve final student name
+        chosen_student_name = None
+        if new_student_name.strip():
+            chosen_student_name = new_student_name.strip()
+        elif selected_existing != "(None)":
+            # Map display name back to internal ID-like name
+            # We only need the *string name* here, the helper will convert to ID.
+            chosen_student_name = selected_existing
+
+        # 2. Upload audio file
+        audio_file = st.file_uploader(
+            "🎧 Upload interview audio file",
+            type=["wav", "mp3", "m4a", "ogg"],
+        )
+
+        # 3. Transcribe & save
+        if st.button("🚀 Transcribe and save interview", type="primary"):
+            if chosen_student_name is None:
+                st.warning("⚠️ Please select or enter a student name first.")
+            elif audio_file is None:
+                st.warning("⚠️ Please upload an audio file.")
+            else:
+                with st.spinner("🔊 Transcribing audio..."):
+                    # Use Whisper (or whatever you wired in audio_transcriber.py)
+                    transcript_text = transcribe_audio_file(audio_file, language=None)
+
+                if not transcript_text.strip():
+                    st.error("❌ Transcription failed or returned empty text.")
+                else:
+                    student_id, audio_path, transcript_path = save_interview_audio_and_transcript(
+                        chosen_student_name, audio_file, transcript_text
+                    )
+
+                    st.success(
+                        f"✅ Interview saved for student ID `{student_id}`.\n\n"
+                        f"- Audio: `{os.path.basename(audio_path)}`\n"
+                        f"- Transcript: `{os.path.basename(transcript_path)}`"
+                    )
+
+                    st.markdown("#### 📝 Transcript preview")
+                    st.text_area(
+                        "",
+                        value=transcript_text,
+                        height=300,
+                        label_visibility="collapsed",
+                    )
+
+                    st.info(
+                        "This transcript will be picked up automatically the next "
+                        "time the knowledge base is loaded (e.g., when you ask a question)."
+                    )
 
     # ----------------------------
-    # TAB 3: Student Fit Test
+    # TAB 4: Student Fit Test
     # ----------------------------
     with tab_fit:
         st.markdown("### Test Student Fit for University")
