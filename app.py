@@ -89,8 +89,6 @@ def save_interview_audio_and_transcript(student_name: str, audio_file, transcrip
 
 
 def main():
-    # Load data
-    doc_loader("data", force_reload=True)
 
     # Header with icon
     st.markdown("<h1>AI Admissions Helper</h1>", unsafe_allow_html=True)
@@ -113,6 +111,9 @@ def main():
             st.write("")  # Spacing
             submit_btn = st.button("🚀 Submit", type="primary", use_container_width=True)
         
+        # Load data
+        doc_loader("data", force_reload=True)
+
         if submit_btn:
             if not question.strip():
                 st.warning("⚠️ Please enter a question.")
@@ -385,11 +386,11 @@ def main():
                 st.markdown("### 📊 Student Fit Evaluation")
                 
                 # Parse fit level and show with colors
-                if "good fit" in fit_answer.lower():
+                if "good fit" in fit_answer.lower()[:min(15, len(fit_answer))]:
                     st.success("✅ GOOD FIT")
-                elif "medium fit" in fit_answer.lower():
+                elif "medium fit" in fit_answer.lower()[:min(20, len(fit_answer))]:
                     st.warning("⚠️ MEDIUM FIT")
-                else:
+                elif "bad fit" in fit_answer.lower()[:min(20, len(fit_answer))]:
                     st.error("❌ BAD FIT")
                 
                 st.text_area("", value=fit_answer, height=300, label_visibility="collapsed")
