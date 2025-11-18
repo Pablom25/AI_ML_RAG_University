@@ -5,7 +5,6 @@ from doc_loader import doc_loader
 from routing import get_known_students, detect_route
 from retriever import retriever
 from generator import generator
-from decomposer import decompose_question
 from styles import apply_custom_styles
 from file_converter import convert_and_save
 from audio_transcriber import transcribe_audio_file
@@ -90,6 +89,9 @@ def save_interview_audio_and_transcript(student_name: str, audio_file, transcrip
 
 
 def main():
+    # Load data
+    doc_loader("data", force_reload=True)
+
     # Header with icon
     st.markdown("<h1>AI Admissions Helper</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: #666; margin-bottom: 2rem;'>Your intelligent assistant for university admissions</p>", unsafe_allow_html=True)
@@ -122,40 +124,24 @@ def main():
                     known_students = get_known_students()
                     route = detect_route(question, known_students)
                 
-                sub_questions = decompose_question(question)
-                if len(sub_questions) > 1:
-                    with st.expander("📋 Decomposed Sub-Questions", expanded=True):
-                        for sq in sub_questions:
-                            st.markdown(f"- {sq}")
-                
-                answers = []
-                progress_bar = st.progress(0)
-                for i, sq in enumerate(sub_questions):
+                with st.spinner("Retrieving relevant documents..."):
                     docs = retriever(
-                        question=sq,
+                        question=question,
                         student=route.student,
                         intent=route.intent,
                         known_students=known_students,
                     )
-                    ans = generator(docs, sq)
-                    answers.append(ans)
-                    progress_bar.progress((i + 1) / len(sub_questions))
                 
-                if len(answers) == 1:
-                    final_answer = answers[0]
-                else:
-                    final_answer = "Combined answer:\n" + "\n\n".join(
-                        [f"**Sub-question:** {sub_questions[i]}\n\n**Answer:** {answers[i]}" for i in range(len(answers))]
-                    )
-                
-                st.markdown("### 💡 Answer")
-                st.text_area("", value=final_answer, height=300, label_visibility="collapsed")
+                with st.spinner("Generating answer..."):
+                    answer = generator(docs, question)
+
+                st.text_area("Answer:", value=answer, height=250)
 
     # ----------------------------
     # TAB 2: Add Student
     # ----------------------------
     with tab_add:
-        st.markdown("### Add a new student to the database")
+        st.markdown("### Add a new student to the database or update student information")
         st.info("📝 Fill in the student's name and upload **.txt or .pdf** files. They will be stored under `data/students/<StudentID>/` as .txt.")
 
         student_name = st.text_input("👤 Student name", placeholder="e.g., Lucas Almeida")
@@ -191,6 +177,7 @@ def main():
                         f"✅ Student **{student_name}** saved as folder `{student_id}` in `{folder}`.\n\n"
                         "You can now go to **Ask Questions** and query this student."
                     )
+                    doc_loader("data", force_reload=True)
     # ----------------------------
     # TAB 3: Interview Audio (upload or record + transcribe)
     # ----------------------------
@@ -258,6 +245,7 @@ def main():
                             f"- Audio: `{os.path.basename(audio_path)}`\n"
                             f"- Transcript: `{os.path.basename(transcript_path)}`"
                         )
+                        doc_loader("data", force_reload=True)
 
                         st.markdown("#### 📝 Transcript preview (uploaded)")
                         st.text_area(
@@ -319,6 +307,7 @@ def main():
                                 f"- Audio: `{os.path.basename(audio_path)}`\n"
                                 f"- Transcript: `{os.path.basename(transcript_path)}`"
                             )
+                            doc_loader("data", force_reload=True)
 
                             st.markdown("#### 📝 Transcript preview (recorded)")
                             st.text_area(
@@ -369,20 +358,20 @@ def main():
                     )
                     
                     fit_prompt = """You are an admissions expert. 
-Given the following student documents and university information, evaluate the student's fit for the university.
+                        Given the following student documents and university information, evaluate the student's fit for the university.
 
-CONTEXT:
-{context}
+                        CONTEXT:
+                        {context}
 
-INSTRUCTIONS:
-- Assess grades, goals, values, and relevant experience.
-- Classify the fit as 'bad fit', 'medium fit', or 'good fit'.
-- Provide a concise summary of the student's profile.
-- Explain clearly why you gave this rating.
+                        INSTRUCTIONS:
+                        - Assess grades, goals, values, and relevant experience.
+                        - Classify the fit as 'bad fit', 'medium fit', or 'good fit'.
+                        - Provide a concise summary of the student's profile.
+                        - Explain clearly why you gave this rating.
 
-Your answer should start with: "Fit: <bad fit/medium fit/good fit>"
-Then provide the summary and explanation.
-"""
+                        Your answer should start with: "Fit: <bad fit/medium fit/good fit>"
+                        Then provide the summary and explanation.
+                    """
                     context = "\n\n".join([doc.page_content for doc in docs])
                     from langchain.prompts import ChatPromptTemplate
                     from langchain_core.output_parsers import StrOutputParser
