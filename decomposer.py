@@ -34,6 +34,7 @@ def decompose_question(question: str) -> list[str]:
     """
     # First check if decomposition is needed
     if not is_complex_question(question):
+        print("Question not decomposed")
         return [question]
     
     template = """You are an expert at breaking down complex questions into simpler sub-questions.

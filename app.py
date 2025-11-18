@@ -120,7 +120,6 @@ def main():
                 
                 with st.spinner("🧭 Routing your question..."):
                     known_students = get_known_students()
-                    route = detect_route(question, known_students)
                 
                 sub_questions = decompose_question(question)
                 if len(sub_questions) > 1:
@@ -131,6 +130,7 @@ def main():
                 answers = []
                 progress_bar = st.progress(0)
                 for i, sq in enumerate(sub_questions):
+                    route = detect_route(sq, known_students)
                     docs = retriever(
                         question=sq,
                         student=route.student,
@@ -144,9 +144,18 @@ def main():
                 if len(answers) == 1:
                     final_answer = answers[0]
                 else:
-                    final_answer = "Combined answer:\n" + "\n\n".join(
+                    route = detect_route(question, known_students)
+                    docs = retriever(
+                        question=question,
+                        student=route.student,
+                        intent=route.intent,
+                        known_students=known_students,
+                    )
+                    combined_answer = "Combined answer:\n" + "\n\n".join(
                         [f"**Sub-question:** {sub_questions[i]}\n\n**Answer:** {answers[i]}" for i in range(len(answers))]
                     )
+                    context = docs.append(combined_answer)
+                    final_answer = generator(context if context else [combined_answer], question)
                 
                 st.markdown("### 💡 Answer")
                 st.text_area("", value=final_answer, height=300, label_visibility="collapsed")

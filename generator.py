@@ -5,6 +5,9 @@ from langchain_community.chat_models import ChatOllama
 def generator(docs:list, question:str) -> str:
     '''Takes documents and question, returns answer'''
 
+    # Print inputs
+    print(f"Question being answered: {question}, context: {docs}")
+
     # Template Prompt
     template = """Answer the question based only on the following context:
     {context}
