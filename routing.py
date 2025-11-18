@@ -60,7 +60,7 @@ def detect_route(question: str, known_students:list) -> Route:
 if __name__ == "__main__":
     question1 = "What does Lucas Almeida's admission essay talk about?"
     question2 = "Does Sofia Martinez's admission essay relate to the university values?"
-    question3 = "According to university guidelines, how long is the interview supposed to be"
+    question3 = "According to university guidelines, what should the interview cover?"
     known_students = get_known_students()
     print(detect_route(question1, known_students))
     print(detect_route(question2, known_students))
