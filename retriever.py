@@ -38,6 +38,11 @@ def retriever(question: str, student: Optional[str], intent: str, known_students
                          "common", "pattern", "all students", "students"]
     is_aggregate_query = any(keyword in question.lower() for keyword in aggregate_keywords)
     
+    # Normalize name and correct typos if name exists in DB
+    student = _resolve_student_name(student, known_students)
+    student = _normalize_name(student)
+
+    # Vector store
     embedding = OllamaEmbeddings(model="mxbai-embed-large")
     db = Chroma(persist_directory="chroma", embedding_function=embedding)
     
