@@ -191,6 +191,7 @@ def main():
                         f"✅ Student **{student_name}** saved as folder `{student_id}` in `{folder}`.\n\n"
                         "You can now go to **Ask Questions** and query this student."
                     )
+                    doc_loader("data", force_reload=True)
     # ----------------------------
     # TAB 3: Interview Audio (upload or record + transcribe)
     # ----------------------------
@@ -258,6 +259,7 @@ def main():
                             f"- Audio: `{os.path.basename(audio_path)}`\n"
                             f"- Transcript: `{os.path.basename(transcript_path)}`"
                         )
+                        doc_loader("data", force_reload=True)
 
                         st.markdown("#### 📝 Transcript preview (uploaded)")
                         st.text_area(
@@ -319,6 +321,7 @@ def main():
                                 f"- Audio: `{os.path.basename(audio_path)}`\n"
                                 f"- Transcript: `{os.path.basename(transcript_path)}`"
                             )
+                            doc_loader("data", force_reload=True)
 
                             st.markdown("#### 📝 Transcript preview (recorded)")
                             st.text_area(
