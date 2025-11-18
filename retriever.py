@@ -136,7 +136,7 @@ if __name__ == "__main__":
     from routing import detect_route
     question1 = "What does Lucas Almeida's admission essay talk about?"
     question2 = "Does Sofia Martinez's admission essay relate to the university values?"
-    question3 = "According to university guidelines, how long is the interview supposed to be"
+    question3 = "According to university guidelines, what should the interview cover?"
     question4 = "Would you say Michael Jackson's cv is good"
     question5 = "What does Luca Almieda's admission essay talk about?"
     questions = [question1, question2, question3, question4, question5]
