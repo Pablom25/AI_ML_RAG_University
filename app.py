@@ -155,7 +155,7 @@ def main():
     # TAB 2: Add Student
     # ----------------------------
     with tab_add:
-        st.markdown("### Add a new student to the database")
+        st.markdown("### Add a new student to the database or update student information")
         st.info("📝 Fill in the student's name and upload **.txt or .pdf** files. They will be stored under `data/students/<StudentID>/` as .txt.")
 
         student_name = st.text_input("👤 Student name", placeholder="e.g., Lucas Almeida")
