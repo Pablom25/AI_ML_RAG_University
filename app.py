@@ -89,6 +89,9 @@ def save_interview_audio_and_transcript(student_name: str, audio_file, transcrip
 
 
 def main():
+    # Load data
+    doc_loader("data", force_reload=True)
+    
     # Header with icon
     st.markdown("<h1>AI Admissions Helper</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: #666; margin-bottom: 2rem;'>Your intelligent assistant for university admissions</p>", unsafe_allow_html=True)
