@@ -5,7 +5,6 @@ from doc_loader import doc_loader
 from routing import get_known_students, detect_route
 from retriever import retriever
 from generator import generator
-from decomposer import decompose_question
 from styles import apply_custom_styles
 from file_converter import convert_and_save
 from audio_transcriber import transcribe_audio_file
@@ -120,45 +119,20 @@ def main():
                 
                 with st.spinner("🧭 Routing your question..."):
                     known_students = get_known_students()
-                
-                sub_questions = decompose_question(question)
-                if len(sub_questions) > 1:
-                    with st.expander("📋 Decomposed Sub-Questions", expanded=True):
-                        for sq in sub_questions:
-                            st.markdown(f"- {sq}")
-                
-                answers = []
-                progress_bar = st.progress(0)
-                for i, sq in enumerate(sub_questions):
-                    route = detect_route(sq, known_students)
-                    docs = retriever(
-                        question=sq,
-                        student=route.student,
-                        intent=route.intent,
-                        known_students=known_students,
-                    )
-                    ans = generator(docs, sq)
-                    answers.append(ans)
-                    progress_bar.progress((i + 1) / len(sub_questions))
-                
-                if len(answers) == 1:
-                    final_answer = answers[0]
-                else:
                     route = detect_route(question, known_students)
+                
+                with st.spinner("Retrieving relevant documents..."):
                     docs = retriever(
                         question=question,
                         student=route.student,
                         intent=route.intent,
                         known_students=known_students,
                     )
-                    combined_answer = "Combined answer:\n" + "\n\n".join(
-                        [f"**Sub-question:** {sub_questions[i]}\n\n**Answer:** {answers[i]}" for i in range(len(answers))]
-                    )
-                    context = docs.append(combined_answer)
-                    final_answer = generator(context if context else [combined_answer], question)
                 
-                st.markdown("### 💡 Answer")
-                st.text_area("", value=final_answer, height=300, label_visibility="collapsed")
+                with st.spinner("Generating answer..."):
+                    answer = generator(docs, question)
+
+                st.text_area("Answer:", value=answer, height=250)
 
     # ----------------------------
     # TAB 2: Add Student
