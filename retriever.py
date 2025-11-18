@@ -32,6 +32,9 @@ def _resolve_student_name(routed_name: str | None, known_students: list[str]) ->
 def retriever(question: str, student: Optional[str], intent: str, known_students: List[str]) -> List:
     '''Retrieve relevant documents based on routing'''
     
+    # Print inputs
+    print(f"Routing - student: {student}, intent: {intent}")
+
     # Check if this is an aggregate/cohort query about students
     aggregate_keywords = ["most common", "how many", "count", "total", "statistics", 
                          "distribution", "nationality", "nationalities", "skills", 
@@ -54,10 +57,6 @@ def retriever(question: str, student: Optional[str], intent: str, known_students
         )
         all_students = cohort_ret.invoke(question)
         return all_students
-    
-    # Vector store
-    # embedding = OllamaEmbeddings(model="mxbai-embed-large")
-    # db = Chroma(persist_directory="chroma", embedding_function=embedding)
 
     # Build filtered retrievers
     if student:
