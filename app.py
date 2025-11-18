@@ -91,7 +91,7 @@ def save_interview_audio_and_transcript(student_name: str, audio_file, transcrip
 def main():
     # Load data
     doc_loader("data", force_reload=True)
-    
+
     # Header with icon
     st.markdown("<h1>AI Admissions Helper</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: #666; margin-bottom: 2rem;'>Your intelligent assistant for university admissions</p>", unsafe_allow_html=True)
@@ -358,20 +358,20 @@ def main():
                     )
                     
                     fit_prompt = """You are an admissions expert. 
-Given the following student documents and university information, evaluate the student's fit for the university.
+                        Given the following student documents and university information, evaluate the student's fit for the university.
 
-CONTEXT:
-{context}
+                        CONTEXT:
+                        {context}
 
-INSTRUCTIONS:
-- Assess grades, goals, values, and relevant experience.
-- Classify the fit as 'bad fit', 'medium fit', or 'good fit'.
-- Provide a concise summary of the student's profile.
-- Explain clearly why you gave this rating.
+                        INSTRUCTIONS:
+                        - Assess grades, goals, values, and relevant experience.
+                        - Classify the fit as 'bad fit', 'medium fit', or 'good fit'.
+                        - Provide a concise summary of the student's profile.
+                        - Explain clearly why you gave this rating.
 
-Your answer should start with: "Fit: <bad fit/medium fit/good fit>"
-Then provide the summary and explanation.
-"""
+                        Your answer should start with: "Fit: <bad fit/medium fit/good fit>"
+                        Then provide the summary and explanation.
+                    """
                     context = "\n\n".join([doc.page_content for doc in docs])
                     from langchain.prompts import ChatPromptTemplate
                     from langchain_core.output_parsers import StrOutputParser
