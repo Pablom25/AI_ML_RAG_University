@@ -10,14 +10,19 @@ import whisper  # from the openai-whisper package
 _MODEL = None
 
 
-def _get_model(model_name: str = "base"):
+_MODEL = None
+
+def _get_model(model_name: str = "tiny"):
     """
-    Lazily load and cache the Whisper model.
-    Change model_name to 'small' / 'medium' if you have more GPU/CPU.
+    Load Whisper model from a local folder inside the project (whisper_models)
+    so it doesn't need to download anything at runtime.
+    We use the smallest model ('tiny') for faster, lighter inference.
     """
     global _MODEL
     if _MODEL is None:
-        _MODEL = whisper.load_model(model_name)
+        base_dir = os.path.dirname(__file__)
+        model_dir = os.path.join(base_dir, "whisper_models")
+        _MODEL = whisper.load_model(model_name, download_root=model_dir)
     return _MODEL
 
 
